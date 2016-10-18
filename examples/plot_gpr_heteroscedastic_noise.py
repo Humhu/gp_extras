@@ -56,9 +56,12 @@ print
 
 # Gaussian Process with RBF kernel and heteroscedastic noise level
 prototypes = KMeans(n_clusters=10).fit(X[:, np.newaxis]).cluster_centers_
+kernel_sced = HeteroscedasticKernel.construct( prototypes[0:-1], 1e-3, (1e-10, 50.0),
+                                               gamma=5.0, gamma_bounds="fixed")
 kernel_hetero = C(1.0, (1e-10, 1000)) * RBF(1, (0.01, 100.0)) \
-    + HeteroscedasticKernel.construct(prototypes, 1e-3, (1e-10, 50.0),
-                                      gamma=5.0, gamma_bounds="fixed")
+    + kernel_sced
+kernel_sced.add_prototype( prototypes[-1] )
+
 gp_heteroscedastic = GaussianProcessRegressor(kernel=kernel_hetero, alpha=0)
 gp_heteroscedastic.fit(X[:, np.newaxis], y)
 print "Heteroscedastic kernel: %s" % gp_heteroscedastic.kernel_

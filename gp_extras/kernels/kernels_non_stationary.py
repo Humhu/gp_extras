@@ -458,8 +458,12 @@ class HeteroscedasticKernel(Kernel):
     """
     def __init__(self, prototypes, sigma_2=1.0, sigma_2_bounds=(0.1, 10.0),
                  gamma=1.0, gamma_bounds=(1e-2, 1e2)):
-        assert prototypes.shape[0] == sigma_2.shape[0]
-        self.prototypes = prototypes
+        if prototypes.shape[0] > 1 and len(np.atleast_1d(sigma_2)) == 1:
+            sigma_2 = np.repeat(sigma_2, prototypes.shape[0])
+            sigma_2_bounds = np.vstack([sigma_2_bounds] *prototypes.shape[0])
+
+        self.prototypes = np.asarray(prototypes)
+        assert self.prototypes.shape[0] == sigma_2.shape[0]
 
         self.sigma_2 = np.asarray(sigma_2)
         self.sigma_2_bounds = sigma_2_bounds
@@ -482,6 +486,22 @@ class HeteroscedasticKernel(Kernel):
             sigma_2 = np.repeat(sigma_2, prototypes.shape[0])
             sigma_2_bounds = np.vstack([sigma_2_bounds] *prototypes.shape[0])
         return cls(prototypes, sigma_2, sigma_2_bounds, gamma, gamma_bounds)
+
+    def add_prototype( self, prototype, sigma_2=None, sigma_2_bound=None ):
+        """Adds a prototype point.
+
+        Parameters
+        ----------
+        prototype: array-like, shape = (n_X_dims)
+            New prototypic sample from the data space to add.
+        sigma_2: 
+        """
+        proto = np.atleast_2d( np.asarray(prototype) )
+        self.prototypes = np.concatenate( (self.prototypes, proto) )
+        self.sigma_2 = np.concatenate( (self.sigma_2, 
+                                        np.atleast_1d(self.sigma_2[0]) ) )
+        self.sigma_2_bounds = np.concatenate( (self.sigma_2_bounds, 
+                                               np.atleast_2d(self.sigma_2_bounds[0]) ) )
 
     def __call__(self, X, Y=None, eval_gradient=False):
         """Return the kernel k(X, Y) and optionally its gradient.
